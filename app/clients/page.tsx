@@ -1,40 +1,70 @@
 import { Header } from '@/components/layout/header';
 import { PageContainer } from '@/components/layout/page-container';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Users, Plus } from 'lucide-react';
+import { ClientList } from '@/components/clients/client-list';
+import { ClientSearch } from '@/components/clients/client-search';
+import { ClientFormDialog } from '@/components/clients/client-form-dialog';
+import { getClients } from '@/app/actions/clients';
+import { supabase } from '@/lib/supabase';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export default function ClientsPage() {
+async function getCurrentUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('sb-auth-token');
+
+  if (!token) {
+    return null;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser(token.value);
+
+  return user;
+}
+
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: { search?: string };
+}) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect('/auth/login');
+  }
+
+  const result = await getClients(user.id, searchParams.search);
+
+  if (result.error) {
+    return (
+      <>
+        <Header title="Clients" subtitle="Manage your client base" />
+        <PageContainer>
+          <div className="text-center py-8">
+            <p className="text-destructive">{result.error}</p>
+          </div>
+        </PageContainer>
+      </>
+    );
+  }
+
+  const clients = result.data || [];
+
   return (
     <>
       <Header title="Clients" subtitle="Manage your client base" />
       <PageContainer>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-semibold">Client List</h2>
-            <p className="text-sm text-muted-foreground">
-              View and manage all clients
-            </p>
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <div className="w-full sm:w-auto sm:flex-1 sm:max-w-sm">
+              <ClientSearch />
+            </div>
+            <ClientFormDialog userId={user.id} />
           </div>
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Client
-          </Button>
-        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              No Clients Yet
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Start adding clients to build your customer database.
-            </p>
-          </CardContent>
-        </Card>
+          <ClientList clients={clients} />
+        </div>
       </PageContainer>
     </>
   );

@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { MobileNav } from '@/components/navigation/mobile-nav';
 import { DesktopNav } from '@/components/navigation/desktop-nav';
+import { Toaster } from '@/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -41,6 +42,7 @@ export default function RootLayout({
           </main>
           <MobileNav />
         </div>
+        <Toaster />
       </body>
     </html>
   );
