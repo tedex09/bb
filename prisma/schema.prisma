@@ -1,0 +1,144 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Barbershop {
+  id           String        @id @default(uuid())
+  name         String
+  email        String?
+  phone        String?
+  address      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  users        User[]
+  barbers      Barber[]
+  clients      Client[]
+  services     Service[]
+  appointments Appointment[]
+  payments     Payment[]
+
+  @@map("barbershops")
+}
+
+model User {
+  id            String      @id @default(uuid())
+  barbershopId  String
+  email         String      @unique
+  name          String
+  role          String      @default("user")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  barbershop    Barbershop  @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+
+  @@index([barbershopId])
+  @@map("users")
+}
+
+model Barber {
+  id            String        @id @default(uuid())
+  barbershopId  String
+  name          String
+  email         String?
+  phone         String?
+  specialties   String?
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  barbershop    Barbershop    @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+
+  @@index([barbershopId])
+  @@index([barberId])
+  @@map("barbers")
+}
+
+model Client {
+  id            String        @id @default(uuid())
+  barbershopId  String
+  name          String
+  email         String?
+  phone         String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  barbershop    Barbershop    @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+
+  @@index([barbershopId])
+  @@index([clientId])
+  @@map("clients")
+}
+
+model Service {
+  id            String        @id @default(uuid())
+  barbershopId  String
+  name          String
+  description   String?
+  duration      Int
+  price         Decimal       @db.Decimal(10, 2)
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  barbershop    Barbershop    @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+
+  @@index([barbershopId])
+  @@map("services")
+}
+
+model Appointment {
+  id            String      @id @default(uuid())
+  barbershopId  String
+  clientId      String
+  barberId      String
+  serviceId     String
+  startTime     DateTime
+  endTime       DateTime
+  status        String      @default("scheduled")
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  barbershop    Barbershop  @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  client        Client      @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  barber        Barber      @relation(fields: [barberId], references: [id], onDelete: Restrict)
+  service       Service     @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  payments      Payment[]
+
+  @@index([barbershopId])
+  @@index([clientId])
+  @@index([barberId])
+  @@index([startTime])
+  @@map("appointments")
+}
+
+model Payment {
+  id            String      @id @default(uuid())
+  barbershopId  String
+  appointmentId String
+  amount        Decimal     @db.Decimal(10, 2)
+  method        String
+  status        String      @default("pending")
+  paidAt        DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  barbershop    Barbershop  @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+
+  @@index([barbershopId])
+  @@map("payments")
+}
